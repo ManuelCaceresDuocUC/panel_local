@@ -17,6 +17,8 @@ export default function PanelPedidosLocal() {
     );
 const nuevosPedidos = response.data.pedidos || []; // Asegura que sea un array
     setPedidos(nuevosPedidos);
+    console.log("Respuesta de la API:", response.data);
+
 
     const nuevo = nuevosPedidos.find(
       (p) => p.estado === "pagado" && p.id !== ultimoPedidoId
