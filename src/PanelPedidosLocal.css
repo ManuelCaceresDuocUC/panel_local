@@ -1,0 +1,102 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+}
+
+.fondo {
+  min-height: 100vh;
+background-image: url("../public/fondos/food-pattern.png");   background-repeat: repeat;
+  background-position: left top;
+  position: relative;
+}
+
+.fondo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.3); /* capa oscura */
+  z-index: 0;
+}
+
+.panel {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin: auto;
+  padding: 40px 24px;
+}
+
+.caja-blanca {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.titulo {
+  font-size: 28px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 24px;
+  color: #222;
+}
+
+.selector-local {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.selector-local select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.tabla th,
+.tabla td {
+  padding: 12px;
+  border: 1px solid #ccc;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tabla th {
+  background-color: #eee;
+}
+
+.estado-pagado {
+  background-color: #fff3cd;
+  color: #856404;
+  font-weight: bold;
+}
+
+.estado-preparacion {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  font-weight: bold;
+}
+
+.estado-listo {
+  background-color: #d4edda;
+  color: #155724;
+  font-weight: bold;
+}
+
+.boton-accion {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.boton-accion:hover {
+  background-color: #0056b3;
+}
