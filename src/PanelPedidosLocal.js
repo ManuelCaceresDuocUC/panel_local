@@ -11,9 +11,8 @@ export default function PanelPedidosLocal() {
   const obtenerPedidos = async () => {
     if (!localSeleccionado) return;
     try {
-      const response = await axios.get(
-        `/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
-      );
+      const response = await axios.get(`https://realbarlacteo-1.onrender.com/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`);
+;
       console.log("Respuesta del backend:", response.data);
 
       const nuevosPedidos = Array.isArray(response.data)
@@ -51,9 +50,8 @@ export default function PanelPedidosLocal() {
 
     const intervalo = setInterval(async () => {
       try {
-        const response = await axios.get(
-          `/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
-        );
+        const response = await axios.get(`https://realbarlacteo-1.onrender.com/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`);
+;
         console.log("Respuesta del backend (intervalo):", response.data);
 
         const nuevosPedidos = Array.isArray(response.data)
