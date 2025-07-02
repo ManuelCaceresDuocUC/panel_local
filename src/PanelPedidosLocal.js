@@ -15,7 +15,7 @@ export default function PanelPedidosLocal() {
     const response = await axios.get(
       `/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
     );
-    const nuevosPedidos = response.data;
+const nuevosPedidos = response.data.pedidos || []; // Asegura que sea un array
     setPedidos(nuevosPedidos);
 
     const nuevo = nuevosPedidos.find(
@@ -45,7 +45,7 @@ export default function PanelPedidosLocal() {
       const response = await axios.get(
         `/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
       );
-      const nuevosPedidos = response.data;
+const nuevosPedidos = response.data.pedidos || []; // Asegura que sea un array
       setPedidos(nuevosPedidos);
 
       const nuevoPedido = nuevosPedidos.find(
