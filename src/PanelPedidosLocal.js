@@ -2,6 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import "./PanelPedidosLocal.css";
 
+const API_BASE_URL = "https://realbarlacteo-1.onrender.com";
+
 export default function PanelPedidosLocal() {
   const [localSeleccionado, setLocalSeleccionado] = useState("HYATT");
   const [pedidos, setPedidos] = useState([]);
@@ -11,8 +13,9 @@ export default function PanelPedidosLocal() {
   const obtenerPedidos = async () => {
     if (!localSeleccionado) return;
     try {
-      const response = await axios.get(`https://realbarlacteo-1.onrender.com/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`);
-;
+      const response = await axios.get(
+        `${API_BASE_URL}/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
+      );
       console.log("Respuesta del backend:", response.data);
 
       const nuevosPedidos = Array.isArray(response.data)
@@ -50,8 +53,9 @@ export default function PanelPedidosLocal() {
 
     const intervalo = setInterval(async () => {
       try {
-        const response = await axios.get(`https://realbarlacteo-1.onrender.com/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`);
-;
+        const response = await axios.get(
+          `${API_BASE_URL}/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
+        );
         console.log("Respuesta del backend (intervalo):", response.data);
 
         const nuevosPedidos = Array.isArray(response.data)
@@ -86,11 +90,15 @@ export default function PanelPedidosLocal() {
 
   const avanzarEstado = async (idPedido) => {
     try {
-      await axios.patch(`/api/pedidos/${idPedido}/estado`, null, {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      await axios.patch(
+        `${API_BASE_URL}/api/pedidos/${idPedido}/estado`,
+        null,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
       obtenerPedidos();
     } catch (error) {
       console.error("Error al actualizar el estado:", error);
@@ -117,6 +125,7 @@ export default function PanelPedidosLocal() {
               onChange={(e) => setLocalSeleccionado(e.target.value)}
             >
               <option value="HYATT">HYATT</option>
+              {/* Puedes agregar más locales aquí */}
             </select>
           </div>
 
