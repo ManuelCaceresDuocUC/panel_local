@@ -100,3 +100,8 @@ background-image: url("../public/fondos/food-pattern.png");   background-repeat:
 .boton-accion:hover {
   background-color: #0056b3;
 }
+.estado-entregado {
+  background-color: #e2e3e5;
+  color: #343a40;
+  font-weight: bold;
+}

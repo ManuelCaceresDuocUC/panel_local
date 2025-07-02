@@ -80,7 +80,7 @@ export default function PanelPedidosLocal() {
       } catch (error) {
         console.error("Error al obtener pedidos:", error);
       }
-    }, 10000); // actualiza cada 10 segundos
+    }, 10000);
 
     return () => {
       clearInterval(intervalo);
@@ -105,7 +105,7 @@ export default function PanelPedidosLocal() {
     }
   };
 
-  const estadosOrden = ["pagado", "en preparación", "listo"];
+  const estadosOrden = ["pagado", "en preparación", "listo", "entregado"];
 
   const siguienteEstado = (estadoActual) => {
     const index = estadosOrden.indexOf(estadoActual);
@@ -125,7 +125,6 @@ export default function PanelPedidosLocal() {
               onChange={(e) => setLocalSeleccionado(e.target.value)}
             >
               <option value="HYATT">HYATT</option>
-              {/* Puedes agregar más locales aquí */}
             </select>
           </div>
 
@@ -157,13 +156,15 @@ export default function PanelPedidosLocal() {
                             ? "estado-preparacion"
                             : pedido.estado === "listo"
                             ? "estado-listo"
+                            : pedido.estado === "entregado"
+                            ? "estado-entregado"
                             : ""
                         }
                       >
                         {pedido.estado}
                       </td>
                       <td>
-                        {pedido.estado !== "listo" && (
+                        {pedido.estado !== "entregado" && (
                           <button
                             onClick={() => avanzarEstado(pedido.id)}
                             className="boton-accion"
