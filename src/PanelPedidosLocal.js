@@ -15,10 +15,9 @@ export default function PanelPedidosLocal() {
     const response = await axios.get(
       `/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
     );
-const nuevosPedidos = response.data.pedidos || []; // Asegura que sea un array
+    const nuevosPedidos = response.data;
+    
     setPedidos(nuevosPedidos);
-    console.log("Respuesta de la API:", response.data);
-
 
     const nuevo = nuevosPedidos.find(
       (p) => p.estado === "pagado" && p.id !== ultimoPedidoId
@@ -47,7 +46,7 @@ const nuevosPedidos = response.data.pedidos || []; // Asegura que sea un array
       const response = await axios.get(
         `/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
       );
-const nuevosPedidos = response.data.pedidos || []; // Asegura que sea un array
+      const nuevosPedidos = response.data;
       setPedidos(nuevosPedidos);
 
       const nuevoPedido = nuevosPedidos.find(
