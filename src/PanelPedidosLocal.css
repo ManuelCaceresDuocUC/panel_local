@@ -105,3 +105,7 @@ background-image: url("../public/fondos/food-pattern.png");   background-repeat:
   color: #343a40;
   font-weight: bold;
 }
+.boton-retroceder {
+  background-color: #f44336;
+  color: white;
+}

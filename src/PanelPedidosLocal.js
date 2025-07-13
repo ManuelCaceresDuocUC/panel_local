@@ -3,6 +3,7 @@ import axios from "axios";
 import "./PanelPedidosLocal.css";
 
 const API_BASE_URL = "https://realbarlacteo-1.onrender.com";
+const estadosOrden = ["pagado", "en preparación", "listo", "entregado"];
 
 export default function PanelPedidosLocal() {
   const [localSeleccionado, setLocalSeleccionado] = useState("HYATT");
@@ -16,16 +17,9 @@ export default function PanelPedidosLocal() {
       const response = await axios.get(
         `${API_BASE_URL}/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
       );
-      console.log("Respuesta del backend:", response.data);
-
       const nuevosPedidos = Array.isArray(response.data)
         ? response.data
         : response.data.pedidos || [];
-
-      if (!Array.isArray(nuevosPedidos)) {
-        console.error("Respuesta inesperada del backend:", response.data);
-        return;
-      }
 
       setPedidos(nuevosPedidos);
 
@@ -51,65 +45,49 @@ export default function PanelPedidosLocal() {
     };
     window.addEventListener("click", permitirAudio);
 
-    const intervalo = setInterval(async () => {
-      try {
-        const response = await axios.get(
-          `${API_BASE_URL}/api/pedidos?local=${encodeURIComponent(localSeleccionado)}`
-        );
-        console.log("Respuesta del backend (intervalo):", response.data);
-
-        const nuevosPedidos = Array.isArray(response.data)
-          ? response.data
-          : response.data.pedidos || [];
-
-        if (!Array.isArray(nuevosPedidos)) {
-          console.error("Respuesta inesperada del backend:", response.data);
-          return;
-        }
-
-        setPedidos(nuevosPedidos);
-
-        const nuevoPedido = nuevosPedidos.find(
-          (p) => p.estado === "pagado" && p.id !== ultimoPedidoId
-        );
-
-        if (nuevoPedido) {
-          sonido.play().catch(() => {});
-          setUltimoPedidoId(nuevoPedido.id);
-        }
-      } catch (error) {
-        console.error("Error al obtener pedidos:", error);
-      }
-    }, 10000);
-
+    const intervalo = setInterval(obtenerPedidos, 10000);
     return () => {
       clearInterval(intervalo);
       window.removeEventListener("click", permitirAudio);
     };
   }, [localSeleccionado, ultimoPedidoId]);
 
-  const avanzarEstado = async (idPedido) => {
-    try {
-      await axios.patch(
-        `${API_BASE_URL}/api/pedidos/${idPedido}/estado`,
-        null,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      obtenerPedidos();
-    } catch (error) {
-      console.error("Error al actualizar el estado:", error);
-    }
-  };
-
-  const estadosOrden = ["pagado", "en preparación", "listo", "entregado"];
-
   const siguienteEstado = (estadoActual) => {
     const index = estadosOrden.indexOf(estadoActual);
     return estadosOrden[index + 1] || estadoActual;
+  };
+
+  const estadoAnterior = (estadoActual) => {
+    const index = estadosOrden.indexOf(estadoActual);
+    return estadosOrden[index - 1] || estadoActual;
+  };
+
+  const avanzarEstado = async (idPedido) => {
+    try {
+      await axios.patch(`${API_BASE_URL}/api/pedidos/${idPedido}/estado`);
+      obtenerPedidos();
+    } catch (error) {
+      console.error("Error al avanzar estado:", error);
+    }
+  };
+
+  const retrocederEstado = async (idPedido) => {
+    const pedido = pedidos.find((p) => p.id === idPedido);
+    if (!pedido) return;
+
+    const nuevoEstado = estadoAnterior(pedido.estado);
+    if (nuevoEstado === pedido.estado) return;
+
+    try {
+      await axios.put(
+        `${API_BASE_URL}/api/pedidos/${idPedido}/estado-manual`,
+        { estado: nuevoEstado },
+        { headers: { "Content-Type": "application/json" } }
+      );
+      obtenerPedidos();
+    } catch (error) {
+      console.error("Error al retroceder estado:", error);
+    }
   };
 
   return (
@@ -145,9 +123,7 @@ export default function PanelPedidosLocal() {
                     <tr key={pedido.id}>
                       <td>#{pedido.id}</td>
                       <td>{pedido.telefono || "-"}</td>
-                      <td style={{ whiteSpace: "pre-wrap" }}>
-                        {pedido.detalle}
-                      </td>
+                      <td style={{ whiteSpace: "pre-wrap" }}>{pedido.detalle}</td>
                       <td
                         className={
                           pedido.estado === "pagado"
@@ -164,14 +140,24 @@ export default function PanelPedidosLocal() {
                         {pedido.estado}
                       </td>
                       <td>
-                        {pedido.estado !== "entregado" && (
-                          <button
-                            onClick={() => avanzarEstado(pedido.id)}
-                            className="boton-accion"
-                          >
-                            Marcar como "{siguienteEstado(pedido.estado)}"
-                          </button>
-                        )}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
+                          {pedido.estado !== "entregado" && (
+                            <button
+                              onClick={() => avanzarEstado(pedido.id)}
+                              className="boton-accion"
+                            >
+                              Marcar como "{siguienteEstado(pedido.estado)}"
+                            </button>
+                          )}
+                          {pedido.estado !== "pagado" && (
+                            <button
+                              onClick={() => retrocederEstado(pedido.id)}
+                              className="boton-accion boton-retroceder"
+                            >
+                              ← Volver a "{estadoAnterior(pedido.estado)}"
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
