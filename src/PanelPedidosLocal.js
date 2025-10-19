@@ -1,4 +1,3 @@
-// src/PanelPedidosLocal.jsx
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import axios from "axios";
 import "./PanelPedidosLocal.css";
@@ -19,33 +18,23 @@ export default function PanelPedidosLocal() {
   const normalizarFecha = (p) => {
     const raw = p.fecha || p.createdAt || p.fechaHora;
     if (!raw) return null;
-    try {
-      return raw.length >= 10 ? raw.slice(0, 10) : null;
-    } catch {
-      return null;
-    }
+    try { return raw.length >= 10 ? raw.slice(0, 10) : null; } catch { return null; }
   };
 
   const obtenerPedidos = async () => {
     if (!localSeleccionado) return;
     try {
       const params = { local: localSeleccionado };
-      // Si tu API soporta filtro por fecha en servidor, descomenta:
-      // if (soloHoy && filtroFecha) params.fecha = filtroFecha;
-
       const { data } = await axios.get(`${API_BASE_URL}/api/pedidos`, { params });
-      const nuevosPedidos = Array.isArray(data) ? data : data.pedidos || [];
-      setPedidos(nuevosPedidos);
-
-      const nuevo = nuevosPedidos.find(
-        (p) => p.estado === "pagado" && p.id !== ultimoPedidoId
-      );
+      const nuevos = Array.isArray(data) ? data : data.pedidos || [];
+      setPedidos(nuevos);
+      const nuevo = nuevos.find((p) => p.estado === "pagado" && p.id !== ultimoPedidoId);
       if (nuevo && sonidoRef.current) {
         sonidoRef.current.play().catch(() => {});
         setUltimoPedidoId(nuevo.id);
       }
-    } catch (error) {
-      console.error("Error al obtener pedidos:", error);
+    } catch (e) {
+      console.error("Error al obtener pedidos:", e);
     }
   };
 
@@ -56,12 +45,8 @@ export default function PanelPedidosLocal() {
       window.removeEventListener("click", permitirAudio);
     };
     window.addEventListener("click", permitirAudio);
-
     const intervalo = setInterval(obtenerPedidos, 10000);
-    return () => {
-      clearInterval(intervalo);
-      window.removeEventListener("click", permitirAudio);
-    };
+    return () => { clearInterval(intervalo); window.removeEventListener("click", permitirAudio); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localSeleccionado, ultimoPedidoId]);
 
@@ -69,7 +54,6 @@ export default function PanelPedidosLocal() {
     const index = estadosOrden.indexOf(estadoActual);
     return estadosOrden[index + 1] || estadoActual;
   };
-
   const estadoAnterior = (estadoActual) => {
     const index = estadosOrden.indexOf(estadoActual);
     return estadosOrden[index - 1] || estadoActual;
@@ -79,8 +63,8 @@ export default function PanelPedidosLocal() {
     try {
       await axios.patch(`${API_BASE_URL}/api/pedidos/${idPedido}/estado`);
       obtenerPedidos();
-    } catch (error) {
-      console.error("Error al avanzar estado:", error);
+    } catch (e) {
+      console.error("Error al avanzar estado:", e);
     }
   };
 
@@ -89,32 +73,47 @@ export default function PanelPedidosLocal() {
     if (!pedido) return;
     const nuevoEstado = estadoAnterior(pedido.estado);
     if (nuevoEstado === pedido.estado) return;
-
     try {
-      await axios.put(
-        `${API_BASE_URL}/api/pedidos/${idPedido}/estado-manual`,
+      await axios.put(`${API_BASE_URL}/api/pedidos/${idPedido}/estado-manual`,
         { estado: nuevoEstado },
         { headers: { "Content-Type": "application/json" } }
       );
       obtenerPedidos();
-    } catch (error) {
-      console.error("Error al retroceder estado:", error);
+    } catch (e) {
+      console.error("Error al retroceder estado:", e);
     }
   };
 
-  // Eliminar pedido
-  const eliminarPedido = async (idPedido) => {
+  // Hard delete con fallback a soft-delete (estado "eliminado")
+  const eliminarPedido = async (idPedido, pedidoIdStr) => {
     const ok = window.confirm(`¿Eliminar el pedido #${idPedido}? Esta acción es irreversible.`);
     if (!ok) return;
     try {
       await axios.delete(`${API_BASE_URL}/api/pedidos/${idPedido}`);
       setPedidos((prev) => prev.filter((p) => p.id !== idPedido));
-    } catch (error) {
-      console.error("Error al eliminar pedido:", error);
+    } catch (e) {
+      if (e?.response?.status === 404 && pedidoIdStr) {
+        // Intento por pedidoId (UUID)
+        try {
+          await axios.delete(`${API_BASE_URL}/api/pedidos/by-pedido-id/${encodeURIComponent(pedidoIdStr)}`);
+          setPedidos((prev) => prev.filter((p) => p.id !== idPedido));
+          return;
+        } catch (_) { /* sigue al soft-delete */ }
+      }
+      // Soft-delete
+      try {
+        await axios.put(`${API_BASE_URL}/api/pedidos/${idPedido}/estado-manual`,
+          { estado: "eliminado" },
+          { headers: { "Content-Type": "application/json" } }
+        );
+        setPedidos((prev) => prev.filter((p) => p.id !== idPedido));
+      } catch (e2) {
+        console.error("Error al eliminar pedido:", e, e2);
+        alert("No fue posible eliminar el pedido.");
+      }
     }
   };
 
-  // Limpiar solo la vista
   const limpiarLista = () => {
     const ok = window.confirm("¿Vaciar la lista visible? No elimina datos del backend.");
     if (!ok) return;
@@ -122,8 +121,9 @@ export default function PanelPedidosLocal() {
   };
 
   const pedidosFiltrados = useMemo(() => {
-    if (!soloHoy || !filtroFecha) return pedidos;
-    return pedidos.filter((p) => normalizarFecha(p) === filtroFecha);
+    const base = pedidos.filter((p) => p.estado !== "eliminado");
+    if (!soloHoy || !filtroFecha) return base;
+    return base.filter((p) => normalizarFecha(p) === filtroFecha);
   }, [pedidos, soloHoy, filtroFecha]);
 
   return (
@@ -134,32 +134,17 @@ export default function PanelPedidosLocal() {
 
           <div className="selector-local" style={{ gap: 12, display: "flex", alignItems: "center", flexWrap: "wrap" }}>
             <label>Seleccionar local: </label>
-            <select
-              value={localSeleccionado}
-              onChange={(e) => setLocalSeleccionado(e.target.value)}
-            >
+            <select value={localSeleccionado} onChange={(e) => setLocalSeleccionado(e.target.value)}>
               <option value="HYATT">HYATT</option>
             </select>
 
             <label style={{ marginLeft: 16 }}>
-              <input
-                type="checkbox"
-                checked={soloHoy}
-                onChange={(e) => setSoloHoy(e.target.checked)}
-              />{" "}
-              Filtrar por día
+              <input type="checkbox" checked={soloHoy} onChange={(e) => setSoloHoy(e.target.checked)} /> Filtrar por día
             </label>
-            <input
-              type="date"
-              value={filtroFecha}
-              onChange={(e) => setFiltroFecha(e.target.value)}
-              disabled={!soloHoy}
-            />
+            <input type="date" value={filtroFecha} onChange={(e) => setFiltroFecha(e.target.value)} disabled={!soloHoy} />
 
             <button className="boton-accion" onClick={obtenerPedidos}>Actualizar</button>
-            <button className="boton-accion boton-retroceder" onClick={limpiarLista} title="Vacía la tabla local">
-              Limpiar lista
-            </button>
+            <button className="boton-accion boton-retroceder" onClick={limpiarLista} title="Vacía la tabla local">Limpiar lista</button>
           </div>
 
           <div className="tabla-contenedor">
@@ -182,19 +167,12 @@ export default function PanelPedidosLocal() {
                       <td>{pedido.telefono || "-"}</td>
                       <td style={{ whiteSpace: "pre-wrap" }}>{pedido.detalle}</td>
                       <td>{normalizarFecha(pedido) || "-"}</td>
-                      <td
-                        className={
-                          pedido.estado === "pagado"
-                            ? "estado-pagado"
-                            : pedido.estado === "en preparación"
-                            ? "estado-preparacion"
-                            : pedido.estado === "listo"
-                            ? "estado-listo"
-                            : pedido.estado === "entregado"
-                            ? "estado-entregado"
-                            : ""
-                        }
-                      >
+                      <td className={
+                        pedido.estado === "pagado" ? "estado-pagado" :
+                        pedido.estado === "en preparación" ? "estado-preparacion" :
+                        pedido.estado === "listo" ? "estado-listo" :
+                        pedido.estado === "entregado" ? "estado-entregado" : ""
+                      }>
                         {pedido.estado}
                       </td>
                       <td>
@@ -210,7 +188,7 @@ export default function PanelPedidosLocal() {
                             </button>
                           )}
                           <button
-                            onClick={() => eliminarPedido(pedido.id)}
+                            onClick={() => eliminarPedido(pedido.id, pedido.pedidoId)}
                             className="boton-accion"
                             style={{ backgroundColor: "#e11d48" }}
                             title="Eliminar definitivamente este pedido"
@@ -222,11 +200,7 @@ export default function PanelPedidosLocal() {
                     </tr>
                   ))
                 ) : (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: "center", opacity: 0.7 }}>
-                      Sin pedidos para el filtro actual.
-                    </td>
-                  </tr>
+                  <tr><td colSpan={6} style={{ textAlign: "center", opacity: 0.7 }}>Sin pedidos para el filtro actual.</td></tr>
                 )}
               </tbody>
             </table>
